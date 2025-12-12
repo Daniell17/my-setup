@@ -19,7 +19,11 @@ function SceneContent() {
       <PerspectiveCamera makeDefault position={[5, 5, 5]} fov={50} />
       
       <Suspense fallback={null}>
-        <Environment preset="city" />
+        <Environment 
+          preset="city" 
+          environmentIntensity={1.0}
+          environmentBlur={0.5}
+        />
       </Suspense>
 
       {/* Lighting */}
@@ -80,7 +84,16 @@ export default function Scene() {
         shadows 
         className="w-full h-full" 
         style={{ display: 'block', width: '100%', height: '100%' }}
-        gl={{ antialias: true, alpha: false }}
+        gl={{ 
+          antialias: true, 
+          alpha: false,
+          powerPreference: 'high-performance',
+          logarithmicDepthBuffer: true,
+          toneMappingExposure: 1.2,
+          outputColorSpace: 'srgb',
+        }}
+        dpr={[1, 2]}
+        performance={{ min: 0.5 }}
       >
         <SceneContent />
       </Canvas>

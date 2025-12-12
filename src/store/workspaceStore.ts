@@ -52,6 +52,7 @@ export interface WorkspaceObject {
     textureUrl?: string;
     color?: string; // Override base color if needed
   };
+  modelUrl?: string;
   properties?: {
     roughness?: number;
     metalness?: number;
@@ -93,7 +94,7 @@ interface WorkspaceState {
   gridSize: number;
 
   // Actions
-  addObject: (type: ObjectType) => void;
+  addObject: (type: ObjectType, overrides?: Partial<WorkspaceObject>) => void;
   removeObject: (id: string) => void;
   selectObject: (id: string | null, multi?: boolean) => void;
   clearSelection: () => void;
@@ -146,7 +147,7 @@ interface WorkspaceState {
   setTimeOfDay: (time: number) => void;
 
   // Layout Management
-  saveLayout: (name: string) => string;
+  saveLayout: (name: string, isPublic?: boolean) => Promise<string>;
   loadLayout: (id: string) => void;
   deleteLayout: (id: string) => void;
   getSavedLayouts: () => SavedLayout[];
@@ -211,7 +212,7 @@ const objectDefaults: Record<
   ObjectType,
   { name: string; color: string; scale: [number, number, number] }
 > = {
-  desk: { name: "Desk", color: "#8B4513", scale: [2, 0.1, 1] },
+  desk: { name: "Desk", color: "#8B4513", scale: [2, 0.05, 1] },
   monitor: { name: "Monitor", color: "#1a1a2e", scale: [0.8, 0.5, 0.05] },
   "pc-tower": { name: "PC Tower", color: "#2d2d2d", scale: [0.3, 0.6, 0.5] },
   lamp: { name: "Desk Lamp", color: "#f4d03f", scale: [0.15, 0.4, 0.15] },
@@ -354,7 +355,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         return state.historyIndex < state.history.length - 1;
       },
 
-      addObject: (type) => {
+      addObject: (type, overrides) => {
         get().pushHistory();
         const defaults = objectDefaults[type];
         const dimensions = getDefaultDimensions(type);
@@ -362,7 +363,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           id: uuidv4(),
           type,
           name: defaults.name,
-          position: [0, defaults.scale[1] / 2, 0],
+          position: type === "desk" ? [0, 0, 0] : [0, defaults.scale[1] / 2, 0],
           rotation: [0, 0, 0],
           scale: defaults.scale,
           color: defaults.color,
@@ -375,6 +376,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
             metalness: 0.5,
           },
           price: 0,
+          ...overrides, // Apply any overrides (like modelUrl)
         };
         set((state) => ({
           objects: [...state.objects, newObject],
@@ -495,8 +497,20 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         }
       },
 
-      saveLayout: (name) => {
+      saveLayout: async (name, isPublic = false) => {
         const layoutId = uuidv4();
+
+        // Generate thumbnail
+        let thumbnailUrl = "";
+        try {
+          const { generateThumbnail } = await import(
+            "@/utils/thumbnailGenerator"
+          );
+          thumbnailUrl = await generateThumbnail(400, 300);
+        } catch (error) {
+          console.error("Failed to generate thumbnail:", error);
+        }
+
         const layout: SavedLayout = {
           id: layoutId,
           name,
@@ -509,6 +523,12 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         );
         layouts.push(layout);
         localStorage.setItem("workspace-layouts", JSON.stringify(layouts));
+
+        // Also save to API if connected
+        import("@/services/api").then(({ api }) => {
+          api.saveLayout(name, get().objects, isPublic).catch(console.error);
+        });
+
         return layoutId;
       },
 

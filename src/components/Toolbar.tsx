@@ -1,5 +1,7 @@
 import { Move, RotateCw, Maximize2, Grid3x3, Zap, Cable, Footprints } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
+import LightingPanel from './LightingPanel';
+import TextureManager from './TextureManager';
 
 export default function Toolbar() {
   const transformMode = useWorkspaceStore((state) => state.transformMode);
@@ -24,9 +26,9 @@ export default function Toolbar() {
   ];
 
   return (
-    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[100] bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl border border-gray-800 p-3 flex items-center gap-4" style={{ pointerEvents: 'auto' }}>
+    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[100] bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl border border-gray-800 p-4 flex items-center gap-5" style={{ pointerEvents: 'auto' }}>
       {/* Transform tools */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         {tools.map(({ mode, icon: Icon, label }) => (
           <button
             key={mode}
@@ -44,7 +46,7 @@ export default function Toolbar() {
       </div>
 
       {/* Snap to Grid */}
-      <div className="pl-2 border-l border-gray-800 flex items-center gap-2">
+      <div className="pl-4 border-l border-gray-800 flex items-center gap-2.5">
         <button
           onClick={() => setSnapToGrid(!snapToGrid)}
           title={`Snap to Grid (${snapToGrid ? 'ON' : 'OFF'})`}
@@ -71,7 +73,7 @@ export default function Toolbar() {
       </div>
 
       {/* Smart Surface Detection */}
-      <div className="pl-2 border-l border-gray-800">
+      <div className="pl-4 border-l border-gray-800">
         <button
           onClick={() => setSmartSurfaceDetection(!smartSurfaceDetection)}
           title={`Smart Surface Detection (${smartSurfaceDetection ? 'ON' : 'OFF'})`}
@@ -86,7 +88,7 @@ export default function Toolbar() {
       </div>
 
       {/* Cable Management */}
-      <div className="pl-2 border-l border-gray-800 flex items-center gap-2">
+      <div className="pl-4 border-l border-gray-800 flex items-center gap-2.5">
         <button
           onClick={() => setCableManagementMode(!cableManagementMode)}
           title={`Cable Management (${cableManagementMode ? 'ON' : 'OFF'})`}
@@ -116,8 +118,18 @@ export default function Toolbar() {
         </button>
       </div>
 
+      {/* Lighting */}
+      <div className="pl-4 border-l border-gray-800">
+        <LightingPanel />
+      </div>
+
+      {/* Textures */}
+      <div className="pl-4 border-l border-gray-800">
+        <TextureManager />
+      </div>
+
       {/* Object count */}
-      <div className="pl-2 border-l border-gray-800">
+      <div className="pl-4 border-l border-gray-800">
         <span className="text-sm text-gray-300 font-mono">
           {objects.length} object{objects.length !== 1 ? 's' : ''}
         </span>

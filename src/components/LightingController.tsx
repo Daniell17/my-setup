@@ -68,7 +68,26 @@ export default function LightingController() {
         intensity={lighting.directionalIntensity}
         color={lighting.directionalColor}
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[4096, 4096]}
+        shadow-camera-far={50}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
+        shadow-camera-top={10}
+        shadow-camera-bottom={-10}
+        shadow-bias={-0.0001}
+        shadow-normalBias={0.02}
+      />
+      {/* Fill light for softer shadows */}
+      <directionalLight
+        position={[-lighting.sunPosition[0], lighting.sunPosition[1] * 0.5, -lighting.sunPosition[2]]}
+        intensity={lighting.directionalIntensity * 0.3}
+        color={lighting.skyColor}
+      />
+      {/* Rim light for depth */}
+      <directionalLight
+        position={[0, 5, -10]}
+        intensity={0.2}
+        color="#ffffff"
       />
       <color attach="background" args={[lighting.skyColor]} />
     </>

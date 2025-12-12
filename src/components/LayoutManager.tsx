@@ -1,9 +1,12 @@
 import { useState, useRef } from 'react';
 import { Save, FolderOpen, Trash2, Upload, X, Download } from 'lucide-react';
 import { useWorkspaceStore, SavedLayout } from '@/store/workspaceStore';
+import { useModalStore } from '@/store/modalStore';
 
 export default function LayoutManager() {
-  const [isOpen, setIsOpen] = useState(false);
+  const openModal = useModalStore((state) => state.openModal);
+  const closeModal = useModalStore((state) => state.closeModal);
+  const isOpen = useModalStore((state) => state.isModalOpen('layoutManager'));
   const [saveName, setSaveName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -17,9 +20,9 @@ export default function LayoutManager() {
 
   const savedLayouts = getSavedLayouts();
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (saveName.trim()) {
-      saveLayout(saveName.trim());
+      await saveLayout(saveName.trim());
       setSaveName('');
       setShowSaveDialog(false);
     }
@@ -30,7 +33,7 @@ export default function LayoutManager() {
       return;
     }
     loadLayout(layout.id);
-    setIsOpen(false);
+    closeModal();
   };
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
@@ -56,7 +59,7 @@ export default function LayoutManager() {
               return;
             }
             importLayout(json);
-            setIsOpen(false);
+            closeModal();
           } else {
             alert('Invalid JSON format. Expected an array of objects.');
           }
@@ -85,7 +88,7 @@ export default function LayoutManager() {
   return (
     <>
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={() => openModal('layoutManager')}
         className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors border border-gray-700 flex items-center gap-2 text-sm"
         title="Manage Layouts"
       >
@@ -94,7 +97,7 @@ export default function LayoutManager() {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setIsOpen(false)}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => closeModal()}>
           <div className="bg-gray-900 rounded-xl shadow-2xl border border-gray-800 w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-gray-800">
               <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -102,7 +105,7 @@ export default function LayoutManager() {
                 Layout Manager
               </h2>
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={() => closeModal()}
                 className="p-1 hover:bg-gray-800 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5 text-gray-400" />

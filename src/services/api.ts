@@ -19,9 +19,14 @@ export interface LayoutResponse {
 
 class ApiService {
   private baseUrl: string;
+  private token: string | null = null;
 
   constructor() {
     this.baseUrl = API_BASE_URL;
+  }
+
+  setToken(token: string | null) {
+    this.token = token;
   }
 
   private async request<T>(
@@ -29,12 +34,15 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+        ...(options.headers as Record<string, string>),
+      };
+
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
+        headers,
       });
 
       if (!response.ok) {
@@ -76,13 +84,18 @@ class ApiService {
     return this.request<LayoutResponse>(`/api/layouts/${id}`);
   }
 
+  async getPublicLayouts(): Promise<ApiResponse<LayoutResponse[]>> {
+    return this.request<LayoutResponse[]>("/api/layouts/community");
+  }
+
   async saveLayout(
     name: string,
-    objects: WorkspaceObject[]
+    objects: WorkspaceObject[],
+    isPublic: boolean = false
   ): Promise<ApiResponse<{ id: string }>> {
     return this.request<{ id: string }>("/api/layouts", {
       method: "POST",
-      body: JSON.stringify({ name, objects }),
+      body: JSON.stringify({ name, objects, isPublic }),
     });
   }
 
@@ -100,6 +113,42 @@ class ApiService {
   async deleteLayout(id: string): Promise<ApiResponse> {
     return this.request(`/api/layouts/${id}`, {
       method: "DELETE",
+    });
+  }
+
+  // Auth API
+  async login(email: string, password: string): Promise<ApiResponse> {
+    return this.request("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async register(username: string, email: string, password: string): Promise<ApiResponse> {
+    return this.request("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ username, email, password }),
+    });
+  }
+
+  async getMe(): Promise<ApiResponse> {
+    return this.request("/api/auth/me");
+  }
+
+  // Template API
+  async getTemplates(category?: string): Promise<ApiResponse> {
+    const url = category && category !== 'All' ? `/api/templates?category=${category}` : '/api/templates';
+    return this.request(url);
+  }
+
+  async getTemplate(id: string): Promise<ApiResponse> {
+    return this.request(`/api/templates/${id}`);
+  }
+
+  async createTemplate(data: any): Promise<ApiResponse> {
+    return this.request('/api/templates', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 }

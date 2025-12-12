@@ -94,6 +94,14 @@ export function CameraPresetsControls() {
 }
 
 export default function CameraPresetsUI() {
+  const selectedId = useWorkspaceStore((state) => state.selectedId);
+  const selectedIds = useWorkspaceStore((state) => state.selectedIds);
+  const objects = useWorkspaceStore((state) => state.objects);
+  
+  // Check if Properties panel should be visible
+  const selectedObject = objects.find((obj) => obj.id === selectedId);
+  const isPropertiesVisible = selectedObject || selectedIds.length > 0;
+  
   const setCameraPreset = (preset: CameraPreset) => {
     if (cameraPresetsRef.setPreset) {
       cameraPresetsRef.setPreset(preset);
@@ -108,8 +116,11 @@ export default function CameraPresetsUI() {
     back: <Eye className="w-4 h-4" />,
   };
 
+  // Position: right-[22rem] when Properties is open, right-4 when closed
+  const rightPosition = isPropertiesVisible ? 'right-[22rem]' : 'right-4';
+
   return (
-    <div className="fixed top-20 right-4 z-[100] bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl border border-gray-800 p-2 flex flex-col gap-1" style={{ pointerEvents: 'auto' }}>
+    <div className={`fixed top-20 ${rightPosition} z-[100] bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl border border-gray-800 p-2 flex flex-col gap-1 transition-all duration-300`} style={{ pointerEvents: 'auto' }}>
       <div className="px-2 py-1 text-xs text-gray-400 font-medium mb-1">Camera</div>
       {Object.entries(presets).map(([key, config]) => (
         <button

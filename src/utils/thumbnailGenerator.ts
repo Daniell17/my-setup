@@ -1,0 +1,2 @@
+export { generateThumbnail } from './exportUtils';
+

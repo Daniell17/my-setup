@@ -4,19 +4,25 @@ import Toolbar from '@/components/Toolbar';
 import PropertiesPanel from '@/components/PropertiesPanel';
 import ExportButton from '@/components/ExportButton';
 import BudgetPanel from '@/components/BudgetPanel';
+import SpaceAnalysis from '@/components/SpaceAnalysis';
 import Header from '@/components/Header';
 import Scene from '@/components/Scene';
 import CameraPresetsUI from '@/components/CameraPresets';
 import ContextMenu from '@/components/ContextMenu';
 import { contextMenuState } from '@/components/WorkspaceObject3D';
 import { LightingUI } from '@/components/LightingController';
+import Tutorial from '@/components/Tutorial';
+import AuthModal from '@/components/AuthModal';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useModalStore } from '@/store/modalStore';
 import { decompressLayout } from '@/utils/compression';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 
 function App() {
   useKeyboardShortcuts();
   const importLayout = useWorkspaceStore((state) => state.importLayout);
+  const isAuthModalOpen = useModalStore((state) => state.isModalOpen('auth'));
+  const closeModal = useModalStore((state) => state.closeModal);
   const [contextMenu, setContextMenu] = useState({
     show: false,
     objectId: null as string | null,
@@ -57,9 +63,11 @@ function App() {
       <Toolbar />
       <PropertiesPanel />
       <BudgetPanel />
+      <SpaceAnalysis />
       <ExportButton />
       <CameraPresetsUI />
       <LightingUI />
+      <Tutorial />
       {contextMenu.show && (
         <ContextMenu
           objectId={contextMenu.objectId}
@@ -67,6 +75,7 @@ function App() {
           onClose={() => contextMenuState.setShow(false)}
         />
       )}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => closeModal()} />
     </main>
   );
 }

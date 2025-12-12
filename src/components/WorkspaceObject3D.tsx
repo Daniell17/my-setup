@@ -1,6 +1,8 @@
-import { useRef } from 'react';
+import { useRef, Suspense } from 'react';
 import { Group } from 'three';
+import { RoundedBox } from '@react-three/drei';
 import { useWorkspaceStore, WorkspaceObject, ObjectType } from '@/store/workspaceStore';
+import GLTFModel from './GLTFModel';
 
 export const contextMenuState = {
   show: false,
@@ -19,6 +21,7 @@ export const contextMenuState = {
 
 interface Props {
   object: WorkspaceObject;
+  lodLevel?: 'high' | 'medium' | 'low';
 }
 
 const ObjectGeometry = ({ 
@@ -26,14 +29,27 @@ const ObjectGeometry = ({
   color, 
   dimensions, 
   material, 
-  properties 
+  properties,
+  modelUrl,
+  lodLevel: _lodLevel = 'high'
 }: { 
   type: ObjectType; 
   color: string; 
   dimensions?: WorkspaceObject['dimensions'];
   material?: WorkspaceObject['material'];
   properties?: WorkspaceObject['properties'];
+  modelUrl?: string;
+  lodLevel?: 'high' | 'medium' | 'low';
 }) => {
+  // If modelUrl is present, load the external model
+  if (modelUrl) {
+    return (
+      <Suspense fallback={null}>
+        <GLTFModel url={modelUrl} castShadow receiveShadow />
+      </Suspense>
+    );
+  }
+
   const w = dimensions?.width ?? 1;
   const h = dimensions?.height ?? 1;
   const d = dimensions?.depth ?? 1;
@@ -45,26 +61,47 @@ const ObjectGeometry = ({
   const transparent = properties?.transparent ?? false;
   const materialType = material?.type ?? 'standard';
 
-  const commonMaterialProps = {
+  // Enhanced material properties for realistic PBR
+  const commonMaterialProps: any = {
     color,
     roughness,
     metalness,
     transparent,
     opacity,
+    clearcoat: 0.1,
+    clearcoatRoughness: 0.1,
+    envMapIntensity: 1.0,
   };
 
-  // Override based on material type if needed
+  // Override based on material type for realistic appearance
   if (materialType === 'glass') {
     commonMaterialProps.transparent = true;
     commonMaterialProps.opacity = Math.min(opacity, 0.5);
-    commonMaterialProps.roughness = 0.1;
-    commonMaterialProps.metalness = 0.9;
+    commonMaterialProps.roughness = 0.05;
+    commonMaterialProps.metalness = 0.0;
+    commonMaterialProps.clearcoat = 1.0;
+    commonMaterialProps.clearcoatRoughness = 0.0;
+    commonMaterialProps.ior = 1.5; // Glass IOR
+    commonMaterialProps.transmission = 1.0;
   } else if (materialType === 'metal') {
-    commonMaterialProps.metalness = 0.8;
-    commonMaterialProps.roughness = 0.2;
+    commonMaterialProps.metalness = 0.95;
+    commonMaterialProps.roughness = 0.15;
+    commonMaterialProps.clearcoat = 0.5;
+    commonMaterialProps.clearcoatRoughness = 0.1;
   } else if (materialType === 'wood') {
-    commonMaterialProps.roughness = 0.8;
-    commonMaterialProps.metalness = 0;
+    commonMaterialProps.roughness = 0.9;
+    commonMaterialProps.metalness = 0.0;
+    commonMaterialProps.clearcoat = 0.2;
+    commonMaterialProps.clearcoatRoughness = 0.3;
+  } else if (materialType === 'plastic') {
+    commonMaterialProps.roughness = 0.4;
+    commonMaterialProps.metalness = 0.0;
+    commonMaterialProps.clearcoat = 0.3;
+    commonMaterialProps.clearcoatRoughness = 0.2;
+  } else if (materialType === 'fabric') {
+    commonMaterialProps.roughness = 1.0;
+    commonMaterialProps.metalness = 0.0;
+    commonMaterialProps.clearcoat = 0.0;
   }
 
   switch (type) {
@@ -81,16 +118,22 @@ const ObjectGeometry = ({
       
       return (
         <group>
-          {/* Desktop surface */}
-          <mesh position={[0, SURFACE_Y, 0]} castShadow receiveShadow>
-            <boxGeometry args={[deskW, deskH, deskD]} />
-            <meshStandardMaterial {...commonMaterialProps} roughness={0.7} metalness={0.1} />
-          </mesh>
+          {/* Desktop surface - with rounded edges */}
+          <RoundedBox 
+            args={[deskW, deskH, deskD]} 
+            radius={0.01} 
+            smoothness={4}
+            position={[0, SURFACE_Y, 0]}
+            castShadow
+            receiveShadow
+          >
+            <meshPhysicalMaterial {...commonMaterialProps} roughness={0.7} metalness={0.1} clearcoat={0.2} clearcoatRoughness={0.3} />
+          </RoundedBox>
           {/* Legs - positioned so they extend from floor (Y=0) upward */}
           {[[-deskW*0.45, LEG_HEIGHT/2, -deskD*0.4], [-deskW*0.45, LEG_HEIGHT/2, deskD*0.4], [deskW*0.45, LEG_HEIGHT/2, -deskD*0.4], [deskW*0.45, LEG_HEIGHT/2, deskD*0.4]].map((pos, i) => (
             <mesh key={i} position={pos as [number, number, number]} castShadow>
               <boxGeometry args={[LEG_THICKNESS, LEG_HEIGHT, LEG_THICKNESS]} />
-              <meshStandardMaterial color="#2a2a2a" roughness={0.6} metalness={0.3} />
+              <meshPhysicalMaterial color="#2a2a2a" roughness={0.6} metalness={0.3} clearcoat={0.1} />
             </mesh>
           ))}
         </group>
@@ -105,7 +148,7 @@ const ObjectGeometry = ({
           {/* Screen */}
           <mesh position={[0, 0.25, 0]} castShadow>
             <boxGeometry args={[monW, monH, monD]} />
-            <meshStandardMaterial {...commonMaterialProps} color="#1a1a2e" />
+            <meshPhysicalMaterial {...commonMaterialProps} color="#1a1a2e" />
           </mesh>
           {/* Screen glow / Image */}
           <mesh position={[0, 0.25, 0.02]}>
@@ -122,19 +165,19 @@ const ObjectGeometry = ({
                      requires handling the async nature of textures in R3F nicely. */}
               </meshBasicMaterial>
             ) : (
-              <meshStandardMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.3} />
+              <meshPhysicalMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.3} />
             )}
-             <meshStandardMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.3} />
+             <meshPhysicalMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.3} />
           </mesh>
           {/* Stand */}
           <mesh position={[0, 0, 0]} castShadow>
             <boxGeometry args={[0.1, 0.15, 0.1]} />
-            <meshStandardMaterial color="#333" metalness={0.8} roughness={0.2} />
+            <meshPhysicalMaterial color="#333" metalness={0.8} roughness={0.2} clearcoat={0.5} clearcoatRoughness={0.1} />
           </mesh>
           {/* Base */}
           <mesh position={[0, -0.07, 0.05]} castShadow>
             <boxGeometry args={[0.25, 0.02, 0.2]} />
-            <meshStandardMaterial color="#333" metalness={0.8} roughness={0.2} />
+            <meshPhysicalMaterial color="#333" metalness={0.8} roughness={0.2} clearcoat={0.5} clearcoatRoughness={0.1} />
           </mesh>
         </group>
       );
@@ -147,18 +190,18 @@ const ObjectGeometry = ({
         <group>
           <mesh castShadow>
             <boxGeometry args={[pcW, pcH, pcD]} />
-            <meshStandardMaterial color={color} roughness={0.3} metalness={0.5} />
+            <meshPhysicalMaterial color={color} roughness={0.3} metalness={0.5} clearcoat={0.2} />
           </mesh>
           {/* LED strip */}
           <mesh position={[pcW/2 + 0.001, 0, 0]}>
             <boxGeometry args={[0.01, pcH * 0.78, 0.02]} />
-            <meshStandardMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={2} />
+            <meshPhysicalMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={2} />
           </mesh>
           {/* Vents */}
           {[-0.15, -0.05, 0.05, 0.15].map((y, i) => (
             <mesh key={i} position={[pcW/2 + 0.001, y, 0.1]} castShadow>
               <boxGeometry args={[0.01, 0.02, 0.15]} />
-              <meshStandardMaterial color="#1a1a1a" />
+              <meshPhysicalMaterial color="#1a1a1a" roughness={0.8} />
             </mesh>
           ))}
         </group>
@@ -170,17 +213,17 @@ const ObjectGeometry = ({
           {/* Base */}
           <mesh position={[0, 0, 0]} castShadow>
             <cylinderGeometry args={[0.08, 0.1, 0.02, 16]} />
-            <meshStandardMaterial color="#333" metalness={0.8} roughness={0.2} />
+            <meshPhysicalMaterial color="#333" metalness={0.8} roughness={0.2} clearcoat={0.5} clearcoatRoughness={0.1} />
           </mesh>
           {/* Arm */}
           <mesh position={[0, 0.2, 0]} castShadow>
             <cylinderGeometry args={[0.015, 0.015, 0.35, 8]} />
-            <meshStandardMaterial color="#555" metalness={0.6} roughness={0.3} />
+            <meshPhysicalMaterial color="#555" metalness={0.6} roughness={0.3} clearcoat={0.3} />
           </mesh>
           {/* Shade */}
           <mesh position={[0, 0.4, 0]} castShadow>
             <coneGeometry args={[0.1, 0.12, 16, 1, true]} />
-            <meshStandardMaterial color={color} side={2} />
+            <meshPhysicalMaterial color={color} side={2} />
           </mesh>
           {/* Light */}
           <pointLight position={[0, 0.35, 0]} intensity={0.5} color="#fff5e6" distance={2} />
@@ -192,17 +235,17 @@ const ObjectGeometry = ({
         <group>
           <mesh castShadow>
             <boxGeometry args={[w, h, d]} />
-            <meshStandardMaterial {...commonMaterialProps} />
+            <meshPhysicalMaterial {...commonMaterialProps} />
           </mesh>
           {/* Woofer */}
           <mesh position={[w/2 + 0.001, -0.05, 0]} rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[Math.min(w, h) * 0.25, Math.min(w, h) * 0.25, 0.02, 16]} />
-            <meshStandardMaterial color="#222" metalness={0.3} />
+            <meshPhysicalMaterial color="#222" metalness={0.3} roughness={0.4} />
           </mesh>
           {/* Tweeter */}
           <mesh position={[w/2 + 0.001, 0.08, 0]} rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[Math.min(w, h) * 0.1, Math.min(w, h) * 0.1, 0.02, 16]} />
-            <meshStandardMaterial color="#444" metalness={0.5} />
+            <meshPhysicalMaterial color="#444" metalness={0.5} roughness={0.3} />
           </mesh>
         </group>
       );
@@ -213,12 +256,12 @@ const ObjectGeometry = ({
           {/* Pot */}
           <mesh position={[0, 0, 0]} castShadow>
             <cylinderGeometry args={[0.08, 0.06, 0.12, 16]} />
-            <meshStandardMaterial color="#8B4513" roughness={0.9} />
+            <meshPhysicalMaterial color="#8B4513" roughness={0.9} clearcoat={0.1} />
           </mesh>
           {/* Soil */}
           <mesh position={[0, 0.05, 0]}>
             <cylinderGeometry args={[0.07, 0.07, 0.02, 16]} />
-            <meshStandardMaterial color="#3d2817" roughness={1} />
+            <meshPhysicalMaterial color="#3d2817" roughness={1} />
           </mesh>
           {/* Leaves */}
           {[0, 60, 120, 180, 240, 300].map((angle, i) => (
@@ -233,7 +276,7 @@ const ObjectGeometry = ({
               castShadow
             >
               <sphereGeometry args={[0.06, 8, 8]} />
-              <meshStandardMaterial color={color} roughness={0.8} />
+              <meshPhysicalMaterial color={color} roughness={0.8} />
             </mesh>
           ))}
         </group>
@@ -241,10 +284,9 @@ const ObjectGeometry = ({
 
     case 'keyboard':
       return (
-        <mesh castShadow>
-          <boxGeometry args={[w, h, d]} />
-          <meshStandardMaterial color={color} roughness={0.3} metalness={0.2} />
-        </mesh>
+        <RoundedBox args={[w, h, d]} radius={0.005} smoothness={4} castShadow>
+          <meshPhysicalMaterial color={color} roughness={0.3} metalness={0.2} clearcoat={0.2} />
+        </RoundedBox>
       );
 
     case 'mouse':
@@ -253,7 +295,7 @@ const ObjectGeometry = ({
       return (
         <mesh castShadow rotation={[Math.PI / 2, 0, 0]}>
           <capsuleGeometry args={[mouseR, mouseH, 4, 8]} />
-          <meshStandardMaterial color={color} roughness={0.2} metalness={0.3} />
+          <meshPhysicalMaterial color={color} roughness={0.2} metalness={0.3} clearcoat={0.3} />
         </mesh>
       );
 
@@ -263,17 +305,17 @@ const ObjectGeometry = ({
           {/* Seat */}
           <mesh position={[0, 0.45, 0]} castShadow>
             <boxGeometry args={[0.5, 0.08, 0.5]} />
-            <meshStandardMaterial color={color} roughness={0.8} />
+            <meshPhysicalMaterial color={color} roughness={0.8} />
           </mesh>
           {/* Back */}
           <mesh position={[0, 0.8, -0.22]} castShadow>
             <boxGeometry args={[0.5, 0.6, 0.08]} />
-            <meshStandardMaterial color={color} roughness={0.8} />
+            <meshPhysicalMaterial color={color} roughness={0.8} />
           </mesh>
           {/* Base */}
           <mesh position={[0, 0.2, 0]} castShadow>
             <cylinderGeometry args={[0.03, 0.03, 0.25, 8]} />
-            <meshStandardMaterial color="#333" metalness={0.8} roughness={0.2} />
+            <meshPhysicalMaterial color="#333" metalness={0.8} roughness={0.2} clearcoat={0.5} clearcoatRoughness={0.1} />
           </mesh>
           {/* Wheels base */}
           {[0, 72, 144, 216, 288].map((angle, i) => (
@@ -287,7 +329,7 @@ const ObjectGeometry = ({
               castShadow
             >
               <sphereGeometry args={[0.03, 8, 8]} />
-              <meshStandardMaterial color="#222" />
+              <meshPhysicalMaterial color="#222" />
             </mesh>
           ))}
         </group>
@@ -297,7 +339,7 @@ const ObjectGeometry = ({
       return (
         <mesh castShadow receiveShadow>
           <boxGeometry args={[w, h, d]} />
-          <meshStandardMaterial {...commonMaterialProps} />
+          <meshPhysicalMaterial {...commonMaterialProps} />
         </mesh>
       );
 
@@ -306,17 +348,17 @@ const ObjectGeometry = ({
         <group>
           <mesh castShadow>
             <cylinderGeometry args={[0.04, 0.035, 0.1, 16]} />
-            <meshStandardMaterial color={color} roughness={0.3} />
+            <meshPhysicalMaterial color={color} roughness={0.3} />
           </mesh>
           {/* Handle */}
           <mesh position={[0.05, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
             <torusGeometry args={[0.025, 0.008, 8, 16, Math.PI]} />
-            <meshStandardMaterial color={color} roughness={0.3} />
+            <meshPhysicalMaterial color={color} roughness={0.3} />
           </mesh>
           {/* Coffee */}
           <mesh position={[0, 0.04, 0]}>
             <cylinderGeometry args={[0.035, 0.035, 0.01, 16]} />
-            <meshStandardMaterial color="#3d2817" />
+            <meshPhysicalMaterial color="#3d2817" />
           </mesh>
         </group>
       );
@@ -327,26 +369,26 @@ const ObjectGeometry = ({
           {/* Headband */}
           <mesh position={[0, 0.1, 0]} castShadow>
             <torusGeometry args={[0.1, 0.015, 8, 16, Math.PI]} />
-            <meshStandardMaterial color={color} roughness={0.3} />
+            <meshPhysicalMaterial color={color} roughness={0.3} />
           </mesh>
           {/* Left ear cup */}
           <mesh position={[-0.1, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
             <cylinderGeometry args={[0.05, 0.05, 0.03, 16]} />
-            <meshStandardMaterial color={color} roughness={0.3} />
+            <meshPhysicalMaterial color={color} roughness={0.3} />
           </mesh>
           {/* Right ear cup */}
           <mesh position={[0.1, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
             <cylinderGeometry args={[0.05, 0.05, 0.03, 16]} />
-            <meshStandardMaterial color={color} roughness={0.3} />
+            <meshPhysicalMaterial color={color} roughness={0.3} />
           </mesh>
           {/* Cushions */}
           <mesh position={[-0.1, 0, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.045, 0.045, 0.02, 16]} />
-            <meshStandardMaterial color="#333" roughness={0.9} />
+            <meshPhysicalMaterial color="#333" roughness={0.9} />
           </mesh>
           <mesh position={[0.1, 0, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.045, 0.045, 0.02, 16]} />
-            <meshStandardMaterial color="#333" roughness={0.9} />
+            <meshPhysicalMaterial color="#333" roughness={0.9} />
           </mesh>
         </group>
       );
@@ -357,7 +399,7 @@ const ObjectGeometry = ({
           {[0, 0.03, 0.06].map((offset, i) => (
             <mesh key={i} position={[offset * 2, 0.1 + offset, 0]} castShadow>
               <boxGeometry args={[w, h, d]} />
-              <meshStandardMaterial color={i === 0 ? color : i === 1 ? "#654321" : "#8B4513"} roughness={0.7} />
+              <meshPhysicalMaterial color={i === 0 ? color : i === 1 ? "#654321" : "#8B4513"} roughness={0.7} />
             </mesh>
           ))}
         </group>
@@ -367,7 +409,7 @@ const ObjectGeometry = ({
       return (
         <mesh castShadow>
           <boxGeometry args={[w, h, d]} />
-          <meshStandardMaterial color={color} roughness={0.3} />
+          <meshPhysicalMaterial color={color} roughness={0.3} />
         </mesh>
       );
 
@@ -378,11 +420,11 @@ const ObjectGeometry = ({
         <group>
           <mesh position={[0, penH/2, 0]} castShadow>
             <cylinderGeometry args={[penR, penR, penH * 0.83, 8]} />
-            <meshStandardMaterial color={color} roughness={0.2} />
+            <meshPhysicalMaterial color={color} roughness={0.2} />
           </mesh>
           <mesh position={[0, penH * 0.83, 0]}>
             <coneGeometry args={[penR, penH * 0.17, 8]} />
-            <meshStandardMaterial color="#ff0000" />
+            <meshPhysicalMaterial color="#ff0000" />
           </mesh>
         </group>
       );
@@ -392,11 +434,11 @@ const ObjectGeometry = ({
         <group>
           <mesh castShadow>
             <boxGeometry args={[w, h, d]} />
-            <meshStandardMaterial color={color} roughness={0.1} metalness={0.8} />
+            <meshPhysicalMaterial color={color} roughness={0.1} metalness={0.8} />
           </mesh>
           <mesh position={[0, 0.03, 0.003]}>
             <planeGeometry args={[w * 0.8, h * 0.8]} />
-            <meshStandardMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.2} />
+            <meshPhysicalMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.2} />
           </mesh>
         </group>
       );
@@ -406,11 +448,11 @@ const ObjectGeometry = ({
         <group>
           <mesh castShadow>
             <boxGeometry args={[w, h, d]} />
-            <meshStandardMaterial color={color} roughness={0.1} metalness={0.7} />
+            <meshPhysicalMaterial color={color} roughness={0.1} metalness={0.7} />
           </mesh>
           <mesh position={[0, 0, 0.003]}>
             <planeGeometry args={[w * 0.92, h * 0.94]} />
-            <meshStandardMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.3} />
+            <meshPhysicalMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.3} />
           </mesh>
         </group>
       );
@@ -420,15 +462,15 @@ const ObjectGeometry = ({
         <group>
           <mesh position={[0, 0.02, 0]} castShadow>
             <boxGeometry args={[w, h, d]} />
-            <meshStandardMaterial color={color} roughness={0.3} />
+            <meshPhysicalMaterial color={color} roughness={0.3} />
           </mesh>
           <mesh position={[0, 0.04, d/2 + 0.001]}>
             <cylinderGeometry args={[w * 0.25, w * 0.25, 0.01, 16]} />
-            <meshStandardMaterial color="#1a1a1a" />
+            <meshPhysicalMaterial color="#1a1a1a" roughness={0.8} />
           </mesh>
           <mesh position={[0, 0, 0]} castShadow>
             <boxGeometry args={[w * 1.33, 0.01, d * 1.33]} />
-            <meshStandardMaterial color="#333" />
+            <meshPhysicalMaterial color="#333" />
           </mesh>
         </group>
       );
@@ -438,15 +480,15 @@ const ObjectGeometry = ({
         <group>
           <mesh position={[0, 0.1, 0]} castShadow>
             <cylinderGeometry args={[0.02, 0.02, 0.15, 16]} />
-            <meshStandardMaterial color={color} roughness={0.4} metalness={0.6} />
+            <meshPhysicalMaterial color={color} roughness={0.4} metalness={0.6} />
           </mesh>
           <mesh position={[0, 0.2, 0]}>
             <sphereGeometry args={[0.03, 16, 16]} />
-            <meshStandardMaterial color="#333" metalness={0.8} />
+            <meshPhysicalMaterial color="#333" metalness={0.8} />
           </mesh>
           <mesh position={[0, 0, 0]} castShadow>
             <cylinderGeometry args={[0.04, 0.04, 0.02, 16]} />
-            <meshStandardMaterial color="#222" />
+            <meshPhysicalMaterial color="#222" />
           </mesh>
         </group>
       );
@@ -456,21 +498,21 @@ const ObjectGeometry = ({
         <group>
           <mesh castShadow>
             <cylinderGeometry args={[0.07, 0.07, 0.015, 32]} />
-            <meshStandardMaterial color={color} roughness={0.2} />
+            <meshPhysicalMaterial color={color} roughness={0.2} />
           </mesh>
           <mesh position={[0, 0.008, 0]}>
             <cylinderGeometry args={[0.065, 0.065, 0.002, 32]} />
-            <meshStandardMaterial color="#1a1a1a" />
+            <meshPhysicalMaterial color="#1a1a1a" roughness={0.8} />
           </mesh>
           {/* Hour hand */}
           <mesh position={[0, 0.009, 0.03]} rotation={[0, 0, Math.PI / 6]}>
             <boxGeometry args={[0.002, 0.03, 0.002]} />
-            <meshStandardMaterial color="#000" />
+            <meshPhysicalMaterial color="#000" />
           </mesh>
           {/* Minute hand */}
           <mesh position={[0, 0.009, 0.04]} rotation={[0, 0, Math.PI / 3]}>
             <boxGeometry args={[0.002, 0.04, 0.002]} />
-            <meshStandardMaterial color="#000" />
+            <meshPhysicalMaterial color="#000" />
           </mesh>
         </group>
       );
@@ -480,11 +522,11 @@ const ObjectGeometry = ({
         <group>
           <mesh castShadow receiveShadow>
             <boxGeometry args={[w, h, d]} />
-            <meshStandardMaterial color={color} roughness={0.8} />
+            <meshPhysicalMaterial color={color} roughness={0.8} />
           </mesh>
           <mesh position={[0, 0, 0.003]}>
             <planeGeometry args={[w * 0.94, h * 0.96]} />
-            <meshStandardMaterial color="#1e40af" />
+            <meshPhysicalMaterial color="#1e40af" />
           </mesh>
         </group>
       );
@@ -494,12 +536,12 @@ const ObjectGeometry = ({
         <group>
           <mesh castShadow>
             <boxGeometry args={[w, h, d]} />
-            <meshStandardMaterial color={color} roughness={0.5} />
+            <meshPhysicalMaterial color={color} roughness={0.5} />
           </mesh>
           {/* Sides */}
           <mesh position={[0, 0.02, 0]} castShadow>
             <boxGeometry args={[w, 0.01, d]} />
-            <meshStandardMaterial color="#333" />
+            <meshPhysicalMaterial color="#333" />
           </mesh>
         </group>
       );
@@ -509,11 +551,11 @@ const ObjectGeometry = ({
         <group>
           <mesh position={[0, 0.05, 0]} castShadow>
             <boxGeometry args={[w, h, d]} />
-            <meshStandardMaterial color={color} roughness={0.3} metalness={0.5} />
+            <meshPhysicalMaterial color={color} roughness={0.3} metalness={0.5} clearcoat={0.2} />
           </mesh>
           <mesh position={[0, 0.1, 0]} castShadow>
             <cylinderGeometry args={[0.02, 0.02, 0.1, 16]} />
-            <meshStandardMaterial color="#333" metalness={0.8} />
+            <meshPhysicalMaterial color="#333" metalness={0.8} />
           </mesh>
         </group>
       );
@@ -522,13 +564,13 @@ const ObjectGeometry = ({
       return (
         <mesh castShadow>
           <boxGeometry args={[0.5, 0.5, 0.5]} />
-          <meshStandardMaterial color={color} />
+          <meshPhysicalMaterial color={color} />
         </mesh>
       );
   }
 };
 
-export default function WorkspaceObject3D({ object }: Props) {
+export default function WorkspaceObject3D({ object, lodLevel = 'high' }: Props) {
   const groupRef = useRef<Group>(null);
   const selectObject = useWorkspaceStore((state) => state.selectObject);
   const selectedId = useWorkspaceStore((state) => state.selectedId);
@@ -554,29 +596,32 @@ export default function WorkspaceObject3D({ object }: Props) {
     });
   };
 
-  // For desk, don't apply Y scale to preserve leg height
-  // Apply scale only to width/depth, keep height fixed
-  const shouldSkipYScale = object.type === 'desk';
-  const adjustedScale: [number, number, number] = shouldSkipYScale 
-    ? [object.scale[0], 1, object.scale[2]] 
-    : object.scale;
+  // Use scale as dimensions for geometry to ensure correct sizing without double-scaling
+  const effectiveDimensions = {
+    ...object.dimensions,
+    width: object.scale[0],
+    height: object.scale[1],
+    depth: object.scale[2],
+  };
 
   return (
     <group
       ref={groupRef}
       position={object.position}
       rotation={object.rotation}
-      scale={adjustedScale}
+      scale={[1, 1, 1]}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
     >
       <ObjectGeometry 
         type={object.type} 
         color={object.color} 
-        dimensions={object.dimensions} 
+        dimensions={effectiveDimensions} 
         material={object.material}
         properties={object.properties}
-      />
+          modelUrl={object.modelUrl}
+          lodLevel={lodLevel}
+        />
       {isMultiSelected && (
         <mesh>
           <boxGeometry args={[1.1, 1.1, 1.1]} />

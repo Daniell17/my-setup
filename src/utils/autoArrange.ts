@@ -43,28 +43,26 @@ export function createArrangementPlan(
   const ROOM_DEPTH = 4;
   const WALL_OFFSET = 0.2; // Keep objects away from walls (increased for safety)
 
-  // Position desk against back wall, centered horizontally
-  // Ensure desk doesn't extend beyond room boundaries
-  const minDeskX = -ROOM_WIDTH / 2 + deskWidth / 2 + WALL_OFFSET;
-  const maxDeskX = ROOM_WIDTH / 2 - deskWidth / 2 - WALL_OFFSET;
+  // Helper to constrain position within room
+  const constrainX = (x: number, width: number) => {
+    const halfRoom = ROOM_WIDTH / 2;
+    const halfObj = width / 2;
+    return Math.max(-halfRoom + WALL_OFFSET + halfObj, Math.min(halfRoom - WALL_OFFSET - halfObj, x));
+  };
 
+  const constrainZ = (z: number, depth: number) => {
+    const halfRoom = ROOM_DEPTH / 2;
+    const halfObj = depth / 2;
+    return Math.max(-halfRoom + WALL_OFFSET + halfObj, Math.min(halfRoom - WALL_OFFSET - halfObj, z));
+  };
+
+  // Position desk against back wall, centered horizontally
   let deskX = 0;
   let deskZ = -ROOM_DEPTH / 2 + deskDepth / 2 + WALL_OFFSET; // Position against back wall
 
-  // Constrain desk X position to fit within room
-  if (deskWidth > ROOM_WIDTH - 2 * WALL_OFFSET) {
-    // Desk is too wide - center it but ensure it doesn't go through walls
-    deskX = 0;
-  } else {
-    // Center desk horizontally but keep within bounds
-    deskX = Math.max(minDeskX, Math.min(maxDeskX, 0));
-  }
-
-  // Ensure desk Z position doesn't go through walls
-  deskZ = Math.max(
-    -ROOM_DEPTH / 2 + deskDepth / 2 + WALL_OFFSET,
-    Math.min(ROOM_DEPTH / 2 - deskDepth / 2 - WALL_OFFSET, deskZ)
-  );
+  // Constrain desk to fit within room
+  deskX = constrainX(deskX, deskWidth);
+  deskZ = constrainZ(deskZ, deskDepth);
 
   plan[desk.id] = {
     position: [deskX, DESK_ORIGIN_Y, deskZ],
@@ -118,10 +116,13 @@ export function createArrangementPlan(
     // Monitor base bottom is at Y=-0.08 relative to monitor origin
     // To sit on desk: monitor origin Y = deskTop + 0.08
     const monitorOriginY = deskTop + 0.08;
+    
+    // Constrain monitor X to room bounds
+    const constrainedX = constrainX(startX + index * (monitorWidth + spacing), monitorWidth);
 
     plan[monitor.id] = {
       position: [
-        startX + index * (monitorWidth + spacing),
+        constrainedX,
         monitorOriginY,
         deskBack + 0.25,
       ],
@@ -179,10 +180,11 @@ export function createArrangementPlan(
     const towerWidth = tower.scale[0];
 
     // Ensure tower stays within room boundaries
-    const towerX = Math.max(
+    let towerX = Math.max(
       -ROOM_WIDTH / 2 + WALL_OFFSET + towerWidth / 2,
       deskLeft - 0.4 - towerWidth / 2
     );
+    towerX = constrainX(towerX, towerWidth);
 
     plan[tower.id] = {
       position: [
