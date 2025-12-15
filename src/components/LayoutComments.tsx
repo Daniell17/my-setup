@@ -40,8 +40,8 @@ export default function LayoutComments({ layoutId, isOpen, onClose }: Props) {
   const loadComments = async () => {
     setIsLoading(true);
     try {
-      const response = await api.request(`/api/comments/${layoutId}`);
-      if (response.success && response.data) {
+      const response = await api.getComments(layoutId);
+      if (response.success && response.data && Array.isArray(response.data)) {
         setComments(response.data);
       }
     } catch (error) {
@@ -56,13 +56,7 @@ export default function LayoutComments({ layoutId, isOpen, onClose }: Props) {
 
     setIsSubmitting(true);
     try {
-      const response = await api.request('/api/comments', {
-        method: 'POST',
-        body: JSON.stringify({
-          layoutId,
-          content: newComment.trim(),
-        }),
-      });
+      const response = await api.createComment(layoutId, newComment.trim());
 
       if (response.success) {
         setNewComment('');
@@ -83,14 +77,7 @@ export default function LayoutComments({ layoutId, isOpen, onClose }: Props) {
 
     setIsSubmitting(true);
     try {
-      const response = await api.request('/api/comments', {
-        method: 'POST',
-        body: JSON.stringify({
-          layoutId,
-          content: replyContent.trim(),
-          parentId,
-        }),
-      });
+      const response = await api.createComment(layoutId, replyContent.trim(), parentId);
 
       if (response.success) {
         setReplyContent('');
@@ -114,9 +101,7 @@ export default function LayoutComments({ layoutId, isOpen, onClose }: Props) {
     }
 
     try {
-      const response = await api.request(`/api/comments/${commentId}/like`, {
-        method: 'PUT',
-      });
+      const response = await api.likeComment(commentId);
 
       if (response.success) {
         loadComments();
@@ -130,9 +115,7 @@ export default function LayoutComments({ layoutId, isOpen, onClose }: Props) {
     if (!confirm('Delete this comment?')) return;
 
     try {
-      const response = await api.request(`/api/comments/${commentId}`, {
-        method: 'DELETE',
-      });
+      const response = await api.deleteComment(commentId);
 
       if (response.success) {
         loadComments();

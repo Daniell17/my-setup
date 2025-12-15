@@ -4,14 +4,12 @@ import { api } from '@/services/api';
 
 export default function ApiStatus() {
   const [status, setStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
-  const [lastCheck, setLastCheck] = useState<Date | null>(null);
 
   const checkConnection = async () => {
     setStatus('checking');
     const response = await api.checkHealth();
     if (response.success) {
       setStatus('connected');
-      setLastCheck(new Date());
     } else {
       setStatus('disconnected');
     }

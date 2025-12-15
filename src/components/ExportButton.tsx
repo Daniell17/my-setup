@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Download, Camera, Image as ImageIcon, Settings, X } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { captureHighQualityScreenshot, ExportFormat } from '@/utils/exportUtils';
@@ -38,7 +38,6 @@ export default function ExportButton() {
   const [quality, setQuality] = useState(0.95); // For JPEG/WebP
   
   const objects = useWorkspaceStore((state) => state.objects);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isPropertiesVisible = usePropertiesVisible();
   
   // Adjust position when Properties panel is open (it's at right-4, so we move export buttons left)

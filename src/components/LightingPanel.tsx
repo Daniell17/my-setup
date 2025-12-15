@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Sun, Moon, Lightbulb, Palette, X } from 'lucide-react';
+import { Lightbulb, X } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
-import LightingController from './LightingController';
 
 type LightingPreset = 'day' | 'night' | 'studio' | 'sunset' | 'custom';
 

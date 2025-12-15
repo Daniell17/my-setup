@@ -19,10 +19,9 @@ function SceneContent() {
       <PerspectiveCamera makeDefault position={[5, 5, 5]} fov={50} />
       
       <Suspense fallback={null}>
-        <Environment 
-          preset="city" 
+        <Environment
+          preset="city"
           environmentIntensity={1.0}
-          environmentBlur={0.5}
         />
       </Suspense>
 

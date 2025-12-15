@@ -151,6 +151,46 @@ class ApiService {
       body: JSON.stringify(data),
     });
   }
+
+  // Comments API
+  async getComments(layoutId: string): Promise<ApiResponse> {
+    return this.request(`/api/comments/${layoutId}`);
+  }
+
+  async createComment(layoutId: string, content: string, parentId?: string): Promise<ApiResponse> {
+    return this.request('/api/comments', {
+      method: 'POST',
+      body: JSON.stringify({ layoutId, content, parentId }),
+    });
+  }
+
+  async likeComment(commentId: string): Promise<ApiResponse> {
+    return this.request(`/api/comments/${commentId}/like`, {
+      method: 'PUT',
+    });
+  }
+
+  async deleteComment(commentId: string): Promise<ApiResponse> {
+    return this.request(`/api/comments/${commentId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Custom Objects API
+  async createCustomObject(data: any): Promise<ApiResponse> {
+    return this.request('/api/custom-objects', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Profile API
+  async updateProfile(data: any): Promise<ApiResponse> {
+    return this.request('/api/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const api = new ApiService();

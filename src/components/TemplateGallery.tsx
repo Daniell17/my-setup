@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Layout, Sparkles, Download, Save, X, Star, TrendingUp } from 'lucide-react';
+import { Layout, Sparkles, Download, Save, X, TrendingUp } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { useModalStore } from '@/store/modalStore';
 import { api } from '@/services/api';
@@ -97,8 +97,8 @@ export default function TemplateGallery() {
     setIsLoading(true);
     try {
       // Try to load from API, fallback to defaults
-      const response = await api.request('/api/templates');
-      if (response.success && response.data) {
+      const response = await api.getTemplates();
+      if (response.success && response.data && Array.isArray(response.data)) {
         setTemplates([...defaultTemplates, ...response.data]);
       }
     } catch (error) {
@@ -130,15 +130,12 @@ export default function TemplateGallery() {
 
     setIsLoading(true);
     try {
-      const response = await api.request('/api/templates', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: templateName.trim(),
-          description: templateDescription,
-          category: templateCategory,
-          objects: objects,
-          isPublic: true,
-        }),
+      const response = await api.createTemplate({
+        name: templateName.trim(),
+        description: templateDescription,
+        category: templateCategory,
+        objects: objects,
+        isPublic: true,
       });
 
       if (response.success) {

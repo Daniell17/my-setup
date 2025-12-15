@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Package, Monitor, Lamp, Speaker, Leaf, Keyboard, Mouse, Box as BoxIcon, Coffee, Headphones, HardDrive, LayoutGrid, Armchair, BookOpen, FileText, PenTool, Smartphone, Tablet, Video, Mic, Clock, Image, Cable, MonitorSpeaker, X, Filter, Star, TrendingUp, Upload } from 'lucide-react';
+import { Search, Package, Monitor, Lamp, Speaker, Leaf, Keyboard, Mouse, Box as BoxIcon, Coffee, Headphones, HardDrive, LayoutGrid, Armchair, BookOpen, FileText, PenTool, Smartphone, Tablet, Video, Mic, Clock, Image, Cable, MonitorSpeaker, X, Filter, Star, Upload } from 'lucide-react';
 import { useWorkspaceStore, ObjectType } from '@/store/workspaceStore';
 import ObjectBuilder from './ObjectBuilder';
 

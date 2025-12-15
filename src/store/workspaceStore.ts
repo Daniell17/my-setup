@@ -500,13 +500,12 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       saveLayout: async (name, isPublic = false) => {
         const layoutId = uuidv4();
 
-        // Generate thumbnail
-        let thumbnailUrl = "";
+        // Generate thumbnail (currently not used)
         try {
           const { generateThumbnail } = await import(
             "@/utils/thumbnailGenerator"
           );
-          thumbnailUrl = await generateThumbnail(400, 300);
+          await generateThumbnail(400, 300);
         } catch (error) {
           console.error("Failed to generate thumbnail:", error);
         }

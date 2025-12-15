@@ -58,16 +58,13 @@ export default function ObjectBuilder() {
           : [dimensions.radius, dimensions.height],
       };
 
-      const response = await api.request('/api/custom-objects', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: objectName.trim(),
-          type: geometryType,
-          geometry,
-          material,
-          scale: [dimensions.width, dimensions.height, dimensions.depth],
-          isPublic: false,
-        }),
+      const response = await api.createCustomObject({
+        name: objectName.trim(),
+        type: geometryType,
+        geometry,
+        material,
+        scale: [dimensions.width, dimensions.height, dimensions.depth],
+        isPublic: false,
       });
 
       if (response.success) {

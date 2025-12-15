@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { api } from '@/services/api';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { api } from "@/services/api";
 
 interface User {
   _id: string;
@@ -14,16 +14,20 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  
+
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (username: string, email: string, password: string) => Promise<boolean>;
+  signup: (
+    username: string,
+    email: string,
+    password: string
+  ) => Promise<boolean>;
   logout: () => void;
   clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       token: null,
       isAuthenticated: false,
@@ -37,24 +41,24 @@ export const useAuthStore = create<AuthState>()(
           if (response.success && response.data) {
             const { token, ...user } = response.data;
             api.setToken(token);
-            set({ 
-              user, 
-              token, 
-              isAuthenticated: true, 
-              isLoading: false 
+            set({
+              user,
+              token,
+              isAuthenticated: true,
+              isLoading: false,
             });
             return true;
           } else {
-            set({ 
-              error: response.error || 'Login failed', 
-              isLoading: false 
+            set({
+              error: response.error || "Login failed",
+              isLoading: false,
             });
             return false;
           }
         } catch (error) {
-          set({ 
-            error: 'An unexpected error occurred', 
-            isLoading: false 
+          set({
+            error: "An unexpected error occurred",
+            isLoading: false,
           });
           return false;
         }
@@ -67,24 +71,24 @@ export const useAuthStore = create<AuthState>()(
           if (response.success && response.data) {
             const { token, ...user } = response.data;
             api.setToken(token);
-            set({ 
-              user, 
-              token, 
-              isAuthenticated: true, 
-              isLoading: false 
+            set({
+              user,
+              token,
+              isAuthenticated: true,
+              isLoading: false,
             });
             return true;
           } else {
-            set({ 
-              error: response.error || 'Signup failed', 
-              isLoading: false 
+            set({
+              error: response.error || "Signup failed",
+              isLoading: false,
             });
             return false;
           }
         } catch (error) {
-          set({ 
-            error: 'An unexpected error occurred', 
-            isLoading: false 
+          set({
+            error: "An unexpected error occurred",
+            isLoading: false,
           });
           return false;
         }
@@ -98,13 +102,12 @@ export const useAuthStore = create<AuthState>()(
       clearError: () => set({ error: null }),
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
       onRehydrateStorage: () => (state) => {
         if (state && state.token) {
           api.setToken(state.token);
         }
-      }
+      },
     }
   )
 );
-

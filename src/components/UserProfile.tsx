@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Settings, Save, X, Upload, Mail, Calendar, Edit2 } from 'lucide-react';
+import { User, Save, X, Upload, Mail } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useModalStore } from '@/store/modalStore';
 import { api } from '@/services/api';
@@ -58,10 +58,7 @@ export default function UserProfile() {
     setIsSaving(true);
     try {
       // Update profile via API
-      const response = await api.request('/api/auth/profile', {
-        method: 'PUT',
-        body: JSON.stringify(profileData),
-      });
+      const response = await api.updateProfile(profileData);
 
       if (response.success) {
         alert('Profile updated successfully!');

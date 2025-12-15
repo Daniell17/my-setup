@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
-import { Group } from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 interface GLTFModelProps {

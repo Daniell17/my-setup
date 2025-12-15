@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Upload, Image as ImageIcon, X, Check } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
-import * as THREE from 'three';
 
 export default function TextureManager() {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,8 +31,9 @@ export default function TextureManager() {
       if (selectedObject) {
         updateObject(selectedObject.id, {
           material: {
-            ...selectedObject.material,
+            type: selectedObject.material?.type || "standard",
             textureUrl: dataUrl,
+            color: selectedObject.material?.color,
           },
         });
       }
@@ -45,8 +45,9 @@ export default function TextureManager() {
     if (selectedObject) {
       updateObject(selectedObject.id, {
         material: {
-          ...selectedObject.material,
+          type: selectedObject.material?.type || "standard",
           textureUrl,
+          color: selectedObject.material?.color,
         },
       });
     }
@@ -56,8 +57,9 @@ export default function TextureManager() {
     if (selectedObject) {
       updateObject(selectedObject.id, {
         material: {
-          ...selectedObject.material,
+          type: selectedObject.material?.type || "standard",
           textureUrl: undefined,
+          color: selectedObject.material?.color,
         },
       });
     }

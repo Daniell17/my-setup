@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import WorkspaceObject3D from './WorkspaceObject3D';
