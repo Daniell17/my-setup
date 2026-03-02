@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
 import { findOptimalCablePath, pathToArray } from "@/utils/cableRouting";
+import { toCanonicalScene, type WorkspaceRoom } from "@/utils/sceneSerializer";
 import {
   createArrangementPlan,
   generateCableConnections,
@@ -34,6 +35,8 @@ export type ObjectType =
 
 export interface WorkspaceObject {
   id: string;
+  // TODO: once the asset catalog is in place, this should always reference a canonical asset
+  assetId?: string;
   type: ObjectType;
   name: string;
   position: [number, number, number];
@@ -523,9 +526,15 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         layouts.push(layout);
         localStorage.setItem("workspace-layouts", JSON.stringify(layouts));
 
-        // Also save to API if connected
+        // Also save to API if connected, using the canonical scene format
+        const state = get();
+        const room: WorkspaceRoom = state.room;
+        const scene = toCanonicalScene(state.objects, room, {
+          budget: state.budget,
+        });
+
         import("@/services/api").then(({ api }) => {
-          api.saveLayout(name, get().objects, isPublic).catch(console.error);
+          api.saveLayout(name, state.objects, isPublic, scene).catch(console.error);
         });
 
         return layoutId;

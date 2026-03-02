@@ -3,6 +3,7 @@ import LayoutManager from './LayoutManager';
 import CommunityGallery from './CommunityGallery';
 import TemplateGallery from './TemplateGallery';
 import UserProfile from './UserProfile';
+import AdminPanel from './AdminPanel';
 import ApiStatus from './ApiStatus';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { useAuthStore } from '@/store/authStore';
@@ -15,10 +16,11 @@ export default function Header() {
   const openModal = useModalStore((state) => state.openModal);
   
   const objects = useWorkspaceStore((state) => state.objects);
+  const room = useWorkspaceStore((state) => state.room);
   const { user, isAuthenticated, logout } = useAuthStore();
 
   const handleShare = () => {
-    const compressed = compressLayout(objects);
+    const compressed = compressLayout(objects, room);
     const url = new URL(window.location.href);
     url.searchParams.set('layout', compressed);
     
@@ -113,6 +115,7 @@ export default function Header() {
           </div>
         </div>
       </div>
+      <AdminPanel />
     </header>
   );
 }

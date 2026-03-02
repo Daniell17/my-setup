@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, Package, Monitor, Lamp, Speaker, Leaf, Keyboard, Mouse, Box as BoxIcon, Coffee, Headphones, HardDrive, LayoutGrid, Armchair, BookOpen, FileText, PenTool, Smartphone, Tablet, Video, Mic, Clock, Image, Cable, MonitorSpeaker, X, Filter, Star, Upload } from 'lucide-react';
 import { useWorkspaceStore, ObjectType } from '@/store/workspaceStore';
+import { api, ObjectTemplateResponse } from '@/services/api';
 import ObjectBuilder from './ObjectBuilder';
 
 interface ObjectItem {
@@ -14,7 +15,7 @@ interface ObjectItem {
   popularity?: number;
 }
 
-const objectItems: ObjectItem[] = [
+const staticObjectItems: ObjectItem[] = [
   { type: 'desk', name: 'Desk', icon: <LayoutGrid className="w-5 h-5" />, category: 'Furniture', subcategory: 'Desks', tags: ['workspace', 'essential'], price: 200, popularity: 10 },
   { type: 'chair', name: 'Chair', icon: <Armchair className="w-5 h-5" />, category: 'Furniture', subcategory: 'Chairs', tags: ['ergonomic', 'comfort'], price: 400, popularity: 9 },
   { type: 'shelf', name: 'Shelf', icon: <BoxIcon className="w-5 h-5" />, category: 'Furniture', subcategory: 'Storage', tags: ['storage', 'organization'], price: 150, popularity: 6 },
@@ -58,13 +59,53 @@ export default function ObjectLibrary() {
   const [showFilters, setShowFilters] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [externalUrl, setExternalUrl] = useState('');
-  
+  const [remoteItems, setRemoteItems] = useState<ObjectItem[] | null>(null);
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
+
   const addObject = useWorkspaceStore((state) => state.addObject);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      setIsLoadingCatalog(true);
+      const res = await api.getObjectTemplates();
+      if (!cancelled) {
+        if (res.success && Array.isArray(res.data)) {
+          const data = res.data as ObjectTemplateResponse[];
+          const mapped: ObjectItem[] = data.map((tpl) => {
+            const base = staticObjectItems.find((i) => i.type === tpl.type);
+            return {
+              type: tpl.type as ObjectType,
+              name: tpl.name || base?.name || tpl.type,
+              icon: base?.icon ?? <BoxIcon className="w-5 h-5" />,
+              category: tpl.category || base?.category || 'Tech',
+              tags: base?.tags,
+              price: typeof tpl.price === 'number' ? tpl.price : base?.price,
+              popularity: base?.popularity,
+            };
+          });
+          setRemoteItems(mapped);
+        } else {
+          setRemoteItems(null);
+        }
+        setIsLoadingCatalog(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Get unique subcategories and tags
+  const sourceItems = remoteItems ?? staticObjectItems;
+
   const subcategories = useMemo(() => {
     const subs = new Set<string>();
-    objectItems.forEach(item => {
+    sourceItems.forEach(item => {
       if (item.subcategory) subs.add(item.subcategory);
     });
     return Array.from(subs).sort();
@@ -72,7 +113,7 @@ export default function ObjectLibrary() {
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
-    objectItems.forEach(item => {
+    sourceItems.forEach(item => {
       item.tags?.forEach(tag => tags.add(tag));
     });
     return Array.from(tags).sort();
@@ -80,7 +121,7 @@ export default function ObjectLibrary() {
 
   // Filter and sort objects
   const filteredItems = useMemo(() => {
-    let filtered = objectItems.filter((item) => {
+    let filtered = sourceItems.filter((item) => {
       // Search query
       const matchesSearch = searchQuery === '' || 
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -120,7 +161,7 @@ export default function ObjectLibrary() {
     });
 
     return filtered;
-  }, [searchQuery, activeCategory, selectedSubcategory, selectedTags, priceRange, sortBy]);
+  }, [searchQuery, activeCategory, selectedSubcategory, selectedTags, priceRange, sortBy, sourceItems]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
@@ -130,7 +171,7 @@ export default function ObjectLibrary() {
     );
   };
 
-  const maxPrice = Math.max(...objectItems.map(item => item.price || 0));
+  const maxPrice = Math.max(...sourceItems.map(item => item.price || 0), 0);
 
   const handleAddExternalModel = () => {
     if (!externalUrl) return;
@@ -330,7 +371,12 @@ export default function ObjectLibrary() {
 
       {/* Object Grid */}
       <div className="flex-1 overflow-y-auto p-5">
-        {filteredItems.length === 0 ? (
+        {isLoadingCatalog && !remoteItems ? (
+          <div className="text-center text-gray-500 py-8">
+            <Package className="w-12 h-12 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">Loading catalog…</p>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
             <Package className="w-12 h-12 mx-auto mb-2 opacity-30" />
             <p className="text-sm">No objects found</p>

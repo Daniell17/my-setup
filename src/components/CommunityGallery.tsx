@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Globe, Download, X, User, MessageSquare, GitFork } from 'lucide-react';
+import { Globe, Download, X, User, MessageSquare, GitFork, Heart } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { useModalStore } from '@/store/modalStore';
 import { api, LayoutResponse } from '@/services/api';
@@ -50,20 +50,23 @@ export default function CommunityGallery() {
       return;
     }
     
-    // Fork: Load the layout and mark it as forked
+    // Fork: Load the layout and create a new private remix on the server
     loadLayout(layout.objects);
     
-    // Save as a new layout with fork reference
     try {
-      await api.saveLayout(
-        `${layout.name} (Fork)`,
-        layout.objects,
-        false // Private by default
-      );
-      alert('Layout forked successfully!');
+      await api.remixLayout(layout.id);
+      alert('Layout remixed into your workspace!');
     } catch (error) {
       console.error('Failed to fork layout:', error);
     }
+  const handleLike = async (layout: LayoutResponse) => {
+    try {
+      await api.likeLayout(layout.id);
+      await loadCommunityLayouts();
+    } catch (error) {
+      console.error('Failed to like layout:', error);
+    }
+  };
     
     closeModal();
   };
@@ -161,8 +164,17 @@ export default function CommunityGallery() {
                           <span>{new Date(layout.updatedAt).toLocaleDateString()}</span>
                         </div>
                         
-                        <div className="mt-auto flex gap-2">
-                          {/* Tags or stats could go here */}
+                        <div className="mt-auto flex items-center justify-between text-xs text-gray-500">
+                          <button
+                            onClick={() => handleLike(layout)}
+                            className="flex items-center gap-1 text-gray-400 hover:text-red-400 transition-colors"
+                          >
+                            <Heart className={`w-3 h-3 ${layout.stats && layout.stats.likes > 0 ? 'fill-current text-red-400' : ''}`} />
+                            <span>{layout.stats?.likes ?? 0}</span>
+                          </button>
+                          <span>
+                            {layout.stats?.remixes ?? 0} remix{(layout.stats?.remixes ?? 0) === 1 ? '' : 'es'}
+                          </span>
                         </div>
                       </div>
                     </div>

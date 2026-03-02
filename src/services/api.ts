@@ -1,4 +1,5 @@
 import { WorkspaceObject } from "@/store/workspaceStore";
+import type { CanonicalScene } from "@/types/scene";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
@@ -11,8 +12,53 @@ export interface ApiResponse<T = any> {
 
 export interface LayoutResponse {
   id: string;
+  userId?: string;
   name: string;
   objects: WorkspaceObject[];
+  createdAt: string;
+  updatedAt: string;
+  stats?: {
+    views: number;
+    likes: number;
+    remixes: number;
+  };
+}
+
+export interface ObjectTemplateResponse {
+  id: string;
+  type: string;
+  name: string;
+  category: string;
+  scale: [number, number, number];
+  color: string;
+  dimensions?: any;
+  material?: any;
+  price: number;
+  thumbnailUrl?: string;
+  modelUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BrandResponse {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string;
+  websiteUrl?: string;
+  description?: string;
+  isVerified: boolean;
+  isSponsored: boolean;
+  priorityWeight: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserResponse {
+  id: string;
+  username: string;
+  email: string;
+  role: "user" | "admin";
   createdAt: string;
   updatedAt: string;
 }
@@ -91,22 +137,24 @@ class ApiService {
   async saveLayout(
     name: string,
     objects: WorkspaceObject[],
-    isPublic: boolean = false
+    isPublic: boolean = false,
+    scene?: CanonicalScene
   ): Promise<ApiResponse<{ id: string }>> {
     return this.request<{ id: string }>("/api/layouts", {
       method: "POST",
-      body: JSON.stringify({ name, objects, isPublic }),
+      body: JSON.stringify({ name, objects, isPublic, scene }),
     });
   }
 
   async updateLayout(
     id: string,
     name: string,
-    objects: WorkspaceObject[]
+    objects: WorkspaceObject[],
+    scene?: CanonicalScene
   ): Promise<ApiResponse> {
     return this.request(`/api/layouts/${id}`, {
       method: "PUT",
-      body: JSON.stringify({ name, objects }),
+      body: JSON.stringify({ name, objects, scene }),
     });
   }
 
@@ -114,6 +162,33 @@ class ApiService {
     return this.request(`/api/layouts/${id}`, {
       method: "DELETE",
     });
+  }
+
+  async likeLayout(id: string): Promise<ApiResponse<{ id: string; stats: LayoutResponse["stats"] }>> {
+    return this.request<{ id: string; stats: LayoutResponse["stats"] }>(
+      `/api/layouts/${id}/like`,
+      {
+        method: "POST",
+      }
+    );
+  }
+
+  async remixLayout(id: string, name?: string): Promise<ApiResponse<LayoutResponse>> {
+    return this.request<LayoutResponse>(`/api/layouts/${id}/remix`, {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  // Object catalog API (asset-like)
+  async getObjectTemplates(category?: string): Promise<
+    ApiResponse<ObjectTemplateResponse[]>
+  > {
+    const query =
+      category && category !== "All"
+        ? `?category=${encodeURIComponent(category)}`
+        : "";
+    return this.request<ObjectTemplateResponse[]>(`/api/objects${query}`);
   }
 
   // Auth API
@@ -189,6 +264,43 @@ class ApiService {
     return this.request('/api/auth/profile', {
       method: 'PUT',
       body: JSON.stringify(data),
+    });
+  }
+
+   // Admin API
+   async getAdminBrands(): Promise<ApiResponse<BrandResponse[]>> {
+     return this.request<BrandResponse[]>('/api/admin/brands');
+   }
+
+   async getAdminObjects(brandId?: string): Promise<ApiResponse<ObjectTemplateResponse[]>> {
+     const query = brandId ? `?brandId=${encodeURIComponent(brandId)}` : '';
+     return this.request<ObjectTemplateResponse[]>(`/api/admin/objects${query}`);
+   }
+
+   async getPendingLayouts(): Promise<ApiResponse<LayoutResponse[]>> {
+     return this.request<LayoutResponse[]>('/api/admin/moderation/layouts?status=pending');
+   }
+
+   async approveLayout(id: string): Promise<ApiResponse> {
+     return this.request(`/api/admin/moderation/layouts/${id}/approve`, {
+       method: 'POST',
+     });
+   }
+
+   async rejectLayout(id: string): Promise<ApiResponse> {
+     return this.request(`/api/admin/moderation/layouts/${id}/reject`, {
+       method: 'POST',
+     });
+   }
+
+  async getAdminUsers(): Promise<ApiResponse<UserResponse[]>> {
+    return this.request<UserResponse[]>('/api/admin/users');
+  }
+
+  async updateUserRole(id: string, role: "user" | "admin"): Promise<ApiResponse<UserResponse>> {
+    return this.request<UserResponse>(`/api/admin/users/${id}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
     });
   }
 }

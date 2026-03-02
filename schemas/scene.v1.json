@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://my-setup.example.com/schemas/scene.v1.json",
+  "title": "CanonicalWorkspaceScene",
+  "type": "object",
+  "description": "Canonical scene graph format for My Setup 3D workspace layouts.",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Semantic version of the scene schema."
+    },
+    "units": {
+      "type": "string",
+      "enum": ["meters"],
+      "description": "Measurement units used for all distances in the scene."
+    },
+    "room": {
+      "type": "object",
+      "description": "Room envelope and environment settings.",
+      "properties": {
+        "width": { "type": "number", "minimum": 0 },
+        "depth": { "type": "number", "minimum": 0 },
+        "height": { "type": "number", "minimum": 0 },
+        "wallVisible": { "type": "boolean" },
+        "floorColor": { "type": "string", "description": "Hex color string, e.g. #1a1a1a." }
+      },
+      "required": ["width", "depth", "height"],
+      "additionalProperties": true
+    },
+    "objects": {
+      "type": "array",
+      "description": "All placeable objects in the scene, each linked to a catalog asset.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable unique identifier of this object instance in the scene."
+          },
+          "assetId": {
+            "type": "string",
+            "description": "Reference to the canonical asset in the catalog.",
+            "minLength": 1
+          },
+          "transform": {
+            "type": "object",
+            "description": "Local transform of the object in room space.",
+            "properties": {
+              "position": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "rotation": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 3,
+                "description": "Euler angles in radians."
+              },
+              "scale": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 3
+              }
+            },
+            "required": ["position", "rotation", "scale"],
+            "additionalProperties": false
+          },
+          "materialOverrides": {
+            "type": "object",
+            "description": "Per-instance material changes applied on top of the asset's default materials.",
+            "properties": {
+              "color": { "type": "string" },
+              "textureUrl": { "type": "string", "format": "uri" },
+              "roughness": { "type": "number", "minimum": 0, "maximum": 1 },
+              "metalness": { "type": "number", "minimum": 0, "maximum": 1 },
+              "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+              "transparent": { "type": "boolean" }
+            },
+            "additionalProperties": true
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Free-form per-instance metadata (cost at save, supplier SKU, tags, etc.).",
+            "additionalProperties": true
+          },
+          "provenance": {
+            "type": "object",
+            "description": "Per-object provenance information, e.g. remix source.",
+            "properties": {
+              "sourceLayoutId": { "type": "string" },
+              "sourceObjectId": { "type": "string" },
+              "createdBy": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "required": ["id", "transform"],
+        "additionalProperties": true
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Scene-level metadata (budget, tags, style, analytics hints, etc.).",
+      "additionalProperties": true
+    }
+  },
+  "required": ["schemaVersion", "units", "room", "objects"],
+  "additionalProperties": false
+}
+
