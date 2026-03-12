@@ -1,4 +1,4 @@
-import { Box, Share2, User as UserIcon } from 'lucide-react';
+import { Box, Share2, User as UserIcon, HelpCircle } from 'lucide-react';
 import LayoutManager from './LayoutManager';
 import CommunityGallery from './CommunityGallery';
 import TemplateGallery from './TemplateGallery';
@@ -86,6 +86,14 @@ export default function Header() {
         >
           <Share2 className="w-4 h-4" />
           <span className="text-sm font-medium">{copySuccess ? 'Copied!' : 'Share'}</span>
+        </button>
+        <button
+          onClick={() => openModal('tutorial')}
+          className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700 text-xs"
+          title="Show tutorial and tips"
+        >
+          <HelpCircle className="w-3 h-3" />
+          <span>Help</span>
         </button>
         <ApiStatus />
         <TemplateGallery />

@@ -63,6 +63,17 @@ export interface UserResponse {
   updatedAt: string;
 }
 
+export interface CollectionResponse {
+  id: string;
+  name: string;
+  description?: string;
+  ownerId: string;
+  layoutIds: string[];
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 class ApiService {
   private baseUrl: string;
   private token: string | null = null;
@@ -301,6 +312,32 @@ class ApiService {
     return this.request<UserResponse>(`/api/admin/users/${id}/role`, {
       method: 'PUT',
       body: JSON.stringify({ role }),
+    });
+  }
+
+  // Collections
+  async getCollections(): Promise<ApiResponse<CollectionResponse[]>> {
+    return this.request<CollectionResponse[]>('/api/collections');
+  }
+
+  async createCollection(
+    name: string,
+    description?: string,
+    isPublic: boolean = false
+  ): Promise<ApiResponse<CollectionResponse>> {
+    return this.request<CollectionResponse>('/api/collections', {
+      method: 'POST',
+      body: JSON.stringify({ name, description, isPublic }),
+    });
+  }
+
+  async addLayoutToCollection(
+    collectionId: string,
+    layoutId: string
+  ): Promise<ApiResponse<CollectionResponse>> {
+    return this.request<CollectionResponse>(`/api/collections/${collectionId}/layouts`, {
+      method: 'POST',
+      body: JSON.stringify({ layoutId }),
     });
   }
 }

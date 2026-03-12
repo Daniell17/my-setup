@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Globe, Download, X, User, MessageSquare, GitFork, Heart } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { useModalStore } from '@/store/modalStore';
-import { api, LayoutResponse } from '@/services/api';
+import { api, LayoutResponse, CollectionResponse } from '@/services/api';
 import LayoutComments from './LayoutComments';
 
 export default function CommunityGallery() {
@@ -13,6 +13,10 @@ export default function CommunityGallery() {
   const [layouts, setLayouts] = useState<LayoutResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedLayoutId, setSelectedLayoutId] = useState<string | null>(null);
+  const [collections, setCollections] = useState<CollectionResponse[]>([]);
+  const [showCollectionsModal, setShowCollectionsModal] = useState(false);
+  const [activeLayoutForCollection, setActiveLayoutForCollection] = useState<LayoutResponse | null>(null);
+  const [newCollectionName, setNewCollectionName] = useState('');
 
   const loadLayout = useWorkspaceStore((state) => state.importLayout);
   const objects = useWorkspaceStore((state) => state.objects);
@@ -34,6 +38,17 @@ export default function CommunityGallery() {
       console.error('Failed to load community layouts:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadCollections = async () => {
+    try {
+      const response = await api.getCollections();
+      if (response.success && response.data) {
+        setCollections(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to load collections:', error);
     }
   };
 
@@ -59,6 +74,9 @@ export default function CommunityGallery() {
     } catch (error) {
       console.error('Failed to fork layout:', error);
     }
+    closeModal();
+  };
+
   const handleLike = async (layout: LayoutResponse) => {
     try {
       await api.likeLayout(layout.id);
@@ -67,8 +85,37 @@ export default function CommunityGallery() {
       console.error('Failed to like layout:', error);
     }
   };
-    
-    closeModal();
+
+  const openCollectionsForLayout = async (layout: LayoutResponse) => {
+    setActiveLayoutForCollection(layout);
+    await loadCollections();
+    setShowCollectionsModal(true);
+  };
+
+  const handleAddToCollection = async (collectionId: string) => {
+    if (!activeLayoutForCollection) return;
+    try {
+      await api.addLayoutToCollection(collectionId, activeLayoutForCollection.id);
+      setShowCollectionsModal(false);
+      setActiveLayoutForCollection(null);
+    } catch (error) {
+      console.error('Failed to add to collection:', error);
+    }
+  };
+
+  const handleCreateCollection = async () => {
+    if (!newCollectionName.trim() || !activeLayoutForCollection) return;
+    try {
+      const res = await api.createCollection(newCollectionName.trim());
+      if (res.success && res.data) {
+        await api.addLayoutToCollection(res.data.id, activeLayoutForCollection.id);
+        setNewCollectionName('');
+        setShowCollectionsModal(false);
+        setActiveLayoutForCollection(null);
+      }
+    } catch (error) {
+      console.error('Failed to create collection:', error);
+    }
   };
 
   return (
@@ -152,6 +199,13 @@ export default function CommunityGallery() {
                             <MessageSquare className="w-4 h-4" />
                             Comments
                           </button>
+                          <button
+                            onClick={() => openCollectionsForLayout(layout)}
+                            className="bg-gray-700 text-white px-3 py-2 rounded-lg font-semibold transform translate-y-2 group-hover:translate-y-0 transition-all flex items-center gap-2 text-sm"
+                          >
+                            +
+                            Collections
+                          </button>
                         </div>
                       </div>
 
@@ -195,6 +249,64 @@ export default function CommunityGallery() {
             setSelectedLayoutId(null);
           }}
         />
+      )}
+
+      {showCollectionsModal && activeLayoutForCollection && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowCollectionsModal(false)}>
+          <div
+            className="bg-gray-900 rounded-xl shadow-2xl border border-gray-800 w-full max-w-md max-h-[80vh] flex flex-col p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">
+                Add “{activeLayoutForCollection.name}” to collection
+              </h3>
+              <button
+                onClick={() => setShowCollectionsModal(false)}
+                className="p-1 rounded hover:bg-gray-800"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-2 mb-3">
+              {collections.length === 0 ? (
+                <div className="text-xs text-gray-500">
+                  You don&apos;t have any collections yet. Create one below.
+                </div>
+              ) : (
+                collections.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => handleAddToCollection(c.id)}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-xs text-gray-100"
+                  >
+                    <span>{c.name}</span>
+                    <span className="text-[10px] text-gray-500">
+                      {c.layoutIds.length} layout{c.layoutIds.length === 1 ? '' : 's'}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="border-t border-gray-800 pt-3 space-y-2">
+              <div className="text-[11px] text-gray-400">Create new collection</div>
+              <input
+                type="text"
+                value={newCollectionName}
+                onChange={(e) => setNewCollectionName(e.target.value)}
+                placeholder="Collection name..."
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-xs text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
+              <button
+                onClick={handleCreateCollection}
+                disabled={!newCollectionName.trim()}
+                className="w-full px-3 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-600 text-xs font-medium text-black disabled:opacity-40"
+              >
+                Create and add
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

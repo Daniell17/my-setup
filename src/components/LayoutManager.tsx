@@ -1,7 +1,39 @@
 import { useState, useRef } from 'react';
-import { Save, FolderOpen, Trash2, Upload, X, Download } from 'lucide-react';
-import { useWorkspaceStore, SavedLayout } from '@/store/workspaceStore';
+import { Save, FolderOpen, Trash2, Upload, X, Download, Sparkles } from 'lucide-react';
+import { useWorkspaceStore, SavedLayout, WorkspaceObject, LayoutSnapshot } from '@/store/workspaceStore';
 import { useModalStore } from '@/store/modalStore';
+
+const minimalPreset: WorkspaceObject[] = [
+  { id: 'preset-desk', type: 'desk', name: 'Desk', position: [0, 0, 0], rotation: [0, 0, 0], scale: [2, 0.05, 1], color: '#8B4513' },
+  { id: 'preset-monitor', type: 'monitor', name: 'Monitor', position: [0, 0.78, 0], rotation: [0, 0, 0], scale: [0.8, 0.5, 0.05], color: '#1a1a2e' },
+  { id: 'preset-keyboard', type: 'keyboard', name: 'Keyboard', position: [0, 0.78, 0.5], rotation: [0, 0, 0], scale: [0.5, 0.03, 0.18], color: '#404040' },
+  { id: 'preset-mouse', type: 'mouse', name: 'Mouse', position: [0.3, 0.78, 0.5], rotation: [0, 0, 0], scale: [0.08, 0.03, 0.12], color: '#303030' },
+  { id: 'preset-chair', type: 'chair', name: 'Chair', position: [0, 0.3, 1.5], rotation: [0, Math.PI, 0], scale: [0.6, 1.2, 0.6], color: '#1a1a1a' },
+];
+
+const gamingPreset: WorkspaceObject[] = [
+  { id: 'g-desk', type: 'desk', name: 'Desk', position: [0, 0, 0], rotation: [0, 0, 0], scale: [2.5, 0.05, 1.2], color: '#8B4513' },
+  { id: 'g-monitor-1', type: 'monitor', name: 'Monitor', position: [-0.4, 0.78, 0], rotation: [0, 0, 0], scale: [0.8, 0.5, 0.05], color: '#1a1a2e' },
+  { id: 'g-monitor-2', type: 'monitor', name: 'Monitor', position: [0.4, 0.78, 0], rotation: [0, 0, 0], scale: [0.8, 0.5, 0.05], color: '#1a1a2e' },
+  { id: 'g-pc', type: 'pc-tower', name: 'PC Tower', position: [-1.2, 0.225, 0], rotation: [0, Math.PI / 4, 0], scale: [0.3, 0.6, 0.5], color: '#2d2d2d' },
+  { id: 'g-keyboard', type: 'keyboard', name: 'Keyboard', position: [0, 0.78, 0.5], rotation: [0, 0, 0], scale: [0.5, 0.03, 0.18], color: '#404040' },
+  { id: 'g-mouse', type: 'mouse', name: 'Mouse', position: [0.3, 0.78, 0.5], rotation: [0, 0, 0], scale: [0.08, 0.03, 0.12], color: '#303030' },
+  { id: 'g-headphones', type: 'headphones', name: 'Headphones', position: [0.6, 0.78, -0.3], rotation: [0, Math.PI / 2, 0], scale: [0.25, 0.25, 0.1], color: '#1a1a1a' },
+  { id: 'g-speaker-1', type: 'speaker', name: 'Speaker', position: [-0.6, 0.78, -0.3], rotation: [0, -Math.PI / 2, 0], scale: [0.2, 0.35, 0.2], color: '#333333' },
+  { id: 'g-speaker-2', type: 'speaker', name: 'Speaker', position: [0.6, 0.78, -0.3], rotation: [0, Math.PI / 2, 0], scale: [0.2, 0.35, 0.2], color: '#333333' },
+  { id: 'g-chair', type: 'chair', name: 'Chair', position: [0, 0.3, 1.5], rotation: [0, Math.PI, 0], scale: [0.6, 1.2, 0.6], color: '#1a1a1a' },
+];
+
+const productivityPreset: WorkspaceObject[] = [
+  { id: 'p-desk', type: 'desk', name: 'Desk', position: [0, 0, 0], rotation: [0, 0, 0], scale: [2, 0.05, 1], color: '#8B4513' },
+  { id: 'p-monitor', type: 'monitor', name: 'Monitor', position: [0, 0.78, 0], rotation: [0, 0, 0], scale: [0.8, 0.5, 0.05], color: '#1a1a2e' },
+  { id: 'p-stand', type: 'monitor-stand', name: 'Monitor Stand', position: [0, 0.78, 0], rotation: [0, 0, 0], scale: [0.6, 0.1, 0.3], color: '#2d2d2d' },
+  { id: 'p-keyboard', type: 'keyboard', name: 'Keyboard', position: [0, 0.78, 0.5], rotation: [0, 0, 0], scale: [0.5, 0.03, 0.18], color: '#404040' },
+  { id: 'p-mouse', type: 'mouse', name: 'Mouse', position: [0.3, 0.78, 0.5], rotation: [0, 0, 0], scale: [0.08, 0.03, 0.12], color: '#303030' },
+  { id: 'p-lamp', type: 'lamp', name: 'Lamp', position: [-0.6, 0.78, 0.3], rotation: [0, Math.PI / 4, 0], scale: [0.15, 0.4, 0.15], color: '#f4d03f' },
+  { id: 'p-plant', type: 'plant', name: 'Plant', position: [0.6, 0.78, -0.3], rotation: [0, 0, 0], scale: [0.2, 0.35, 0.2], color: '#228B22' },
+  { id: 'p-chair', type: 'chair', name: 'Chair', position: [0, 0.3, 1.5], rotation: [0, Math.PI, 0], scale: [0.6, 1.2, 0.6], color: '#1a1a1a' },
+];
 
 export default function LayoutManager() {
   const openModal = useModalStore((state) => state.openModal);
@@ -9,6 +41,7 @@ export default function LayoutManager() {
   const isOpen = useModalStore((state) => state.isModalOpen('layoutManager'));
   const [saveName, setSaveName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showNewDialog, setShowNewDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const objects = useWorkspaceStore((state) => state.objects);
@@ -17,6 +50,11 @@ export default function LayoutManager() {
   const deleteLayout = useWorkspaceStore((state) => state.deleteLayout);
   const getSavedLayouts = useWorkspaceStore((state) => state.getSavedLayouts);
   const importLayout = useWorkspaceStore((state) => state.importLayout);
+  const clearWorkspace = useWorkspaceStore((state) => state.clearWorkspace);
+  const snapshots = useWorkspaceStore((state) => state.snapshots);
+  const saveSnapshot = useWorkspaceStore((state) => state.saveSnapshot);
+  const deleteSnapshot = useWorkspaceStore((state) => state.deleteSnapshot);
+  const restoreSnapshot = useWorkspaceStore((state) => state.restoreSnapshot);
 
   const savedLayouts = getSavedLayouts();
 
@@ -85,6 +123,11 @@ export default function LayoutManager() {
     URL.revokeObjectURL(url);
   };
 
+  const handleSaveSnapshot = () => {
+    const defaultName = `Snapshot ${new Date().toLocaleTimeString()}`;
+    saveSnapshot(defaultName);
+  };
+
   return (
     <>
       <button
@@ -115,6 +158,13 @@ export default function LayoutManager() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Action Buttons */}
               <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setShowNewDialog(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors border border-gray-700 text-sm"
+                >
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  New Layout
+                </button>
                 <button
                   onClick={() => setShowSaveDialog(true)}
                   className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors text-sm"
@@ -183,6 +233,77 @@ export default function LayoutManager() {
                 </div>
               )}
 
+              {/* New Layout Presets */}
+              {showNewDialog && (
+                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                  <h3 className="text-sm font-medium text-white mb-3">Start a new layout</h3>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <button
+                      onClick={() => {
+                        if (objects.length > 0 && !confirm('This will replace your current workspace. Continue?')) {
+                          return;
+                        }
+                        importLayout(minimalPreset.map(o => ({ ...o, id: crypto.randomUUID() })));
+                        setShowNewDialog(false);
+                        closeModal();
+                      }}
+                      className="p-3 rounded-lg bg-gray-900 hover:bg-gray-700 border border-gray-700 text-left text-xs text-gray-200"
+                    >
+                      <div className="font-semibold mb-1">Minimal</div>
+                      <div className="text-gray-500">Clean single-monitor desk</div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (objects.length > 0 && !confirm('This will replace your current workspace. Continue?')) {
+                          return;
+                        }
+                        importLayout(gamingPreset.map(o => ({ ...o, id: crypto.randomUUID() })));
+                        setShowNewDialog(false);
+                        closeModal();
+                      }}
+                      className="p-3 rounded-lg bg-gray-900 hover:bg-gray-700 border border-gray-700 text-left text-xs text-gray-200"
+                    >
+                      <div className="font-semibold mb-1">Gaming</div>
+                      <div className="text-gray-500">Dual monitors, PC tower, audio</div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (objects.length > 0 && !confirm('This will replace your current workspace. Continue?')) {
+                          return;
+                        }
+                        importLayout(productivityPreset.map(o => ({ ...o, id: crypto.randomUUID() })));
+                        setShowNewDialog(false);
+                        closeModal();
+                      }}
+                      className="p-3 rounded-lg bg-gray-900 hover:bg-gray-700 border border-gray-700 text-left text-xs text-gray-200"
+                    >
+                      <div className="font-semibold mb-1">Productivity</div>
+                      <div className="text-gray-500">Focused work setup</div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (objects.length > 0 && !confirm('This will clear your workspace. Continue?')) {
+                          return;
+                        }
+                        clearWorkspace();
+                        setShowNewDialog(false);
+                        closeModal();
+                      }}
+                      className="p-3 rounded-lg bg-gray-900 hover:bg-gray-700 border border-gray-700 text-left text-xs text-gray-200"
+                    >
+                      <div className="font-semibold mb-1">Blank</div>
+                      <div className="text-gray-500">Start from an empty room</div>
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setShowNewDialog(false)}
+                    className="w-full px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
               {/* Saved Layouts List */}
               <div>
                 <h3 className="text-sm font-medium text-gray-400 mb-2">Saved Layouts ({savedLayouts.length})</h3>
@@ -211,6 +332,55 @@ export default function LayoutManager() {
                         >
                           <Trash2 className="w-4 h-4 text-red-400" />
                         </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Local Snapshots */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-gray-400">Snapshots ({snapshots.length})</h3>
+                  <button
+                    onClick={handleSaveSnapshot}
+                    disabled={objects.length === 0}
+                    className="flex items-center gap-1 px-2 py-1 text-[11px] rounded bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 disabled:opacity-40"
+                  >
+                    Quick snapshot
+                  </button>
+                </div>
+                {snapshots.length === 0 ? (
+                  <div className="text-xs text-gray-500">
+                    Snapshots let you quickly save and restore states while editing a layout.
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {snapshots.map((snap: LayoutSnapshot) => (
+                      <div
+                        key={snap.id}
+                        className="flex items-center justify-between p-2 bg-gray-800 rounded-lg border border-gray-700 text-xs"
+                      >
+                        <div>
+                          <div className="text-gray-100">{snap.name}</div>
+                          <div className="text-[10px] text-gray-500">
+                            {new Date(snap.createdAt).toLocaleTimeString()}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => restoreSnapshot(snap.id)}
+                            className="px-2 py-1 rounded bg-cyan-600 text-white"
+                          >
+                            Restore
+                          </button>
+                          <button
+                            onClick={() => deleteSnapshot(snap.id)}
+                            className="px-2 py-1 rounded bg-gray-700 text-gray-200"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

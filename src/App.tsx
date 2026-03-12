@@ -21,6 +21,7 @@ import { useWorkspaceStore } from '@/store/workspaceStore';
 function App() {
   useKeyboardShortcuts();
   const importLayout = useWorkspaceStore((state) => state.importLayout);
+  const objects = useWorkspaceStore((state) => state.objects);
   const isAuthModalOpen = useModalStore((state) => state.isModalOpen('auth'));
   const closeModal = useModalStore((state) => state.closeModal);
   const [contextMenu, setContextMenu] = useState({
@@ -68,6 +69,14 @@ function App() {
       <CameraPresetsUI />
       <LightingUI />
       <Tutorial />
+      {objects.length === 0 && (
+        <div className="pointer-events-none fixed inset-0 flex items-center justify-center z-[50]">
+          <div className="px-4 py-3 rounded-lg bg-gray-900/90 border border-gray-700 text-xs text-gray-300 shadow-xl">
+            <span className="font-semibold text-white">Tip:</span>{' '}
+            Use the Object Library on the left or the Templates button in the header to start your first setup.
+          </div>
+        </div>
+      )}
       {contextMenu.show && (
         <ContextMenu
           objectId={contextMenu.objectId}

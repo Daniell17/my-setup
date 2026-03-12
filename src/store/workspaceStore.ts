@@ -80,6 +80,13 @@ export interface SavedLayout {
   updatedAt: number;
 }
 
+export interface LayoutSnapshot {
+  id: string;
+  name: string;
+  objects: WorkspaceObject[];
+  createdAt: number;
+}
+
 interface HistoryState {
   objects: WorkspaceObject[];
   selectedId: string | null;
@@ -155,6 +162,12 @@ interface WorkspaceState {
   deleteLayout: (id: string) => void;
   getSavedLayouts: () => SavedLayout[];
   importLayout: (objects: WorkspaceObject[]) => void;
+
+  // Local snapshots
+  snapshots: LayoutSnapshot[];
+  saveSnapshot: (name: string) => void;
+  deleteSnapshot: (id: string) => void;
+  restoreSnapshot: (id: string) => void;
 
   // Room Environment
   room: {
@@ -300,6 +313,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       maxHistorySize: 50,
       snapToGrid: false,
       gridSize: 0.5,
+      snapshots: [],
       smartSurfaceDetection: true,
       cableManagementMode: false,
       cables: [],
@@ -569,6 +583,36 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         get().pushHistory();
         set({
           objects,
+          selectedId: null,
+        });
+      },
+
+      saveSnapshot: (name) => {
+        const state = get();
+        const snapshot: LayoutSnapshot = {
+          id: uuidv4(),
+          name: name || "Snapshot",
+          objects: JSON.parse(JSON.stringify(state.objects)),
+          createdAt: Date.now(),
+        };
+        set((s) => ({
+          snapshots: [...s.snapshots, snapshot],
+        }));
+      },
+
+      deleteSnapshot: (id) => {
+        set((s) => ({
+          snapshots: s.snapshots.filter((snap) => snap.id !== id),
+        }));
+      },
+
+      restoreSnapshot: (id) => {
+        const state = get();
+        const snapshot = state.snapshots.find((s) => s.id === id);
+        if (!snapshot) return;
+        state.pushHistory();
+        set({
+          objects: JSON.parse(JSON.stringify(snapshot.objects)),
           selectedId: null,
         });
       },
